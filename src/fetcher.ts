@@ -205,9 +205,13 @@ async function fetchUrl<R>(request: Request, persistParams: string[]) {
 }
 
 function createFetch<OP>(fetch: _TypedFetch<OP>): TypedFetch<OP> {
-  const fun = async (payload: OpArgType<OP>, init?: RequestInit) => {
+  const fun = async (
+    payload: OpArgType<OP>,
+    init?: RequestInit,
+    persistParams?: [],
+  ) => {
     try {
-      return await fetch(payload, init)
+      return await fetch(payload, init, persistParams)
     } catch (err) {
       if (err instanceof ApiError) {
         throw new fun.Error(err)
