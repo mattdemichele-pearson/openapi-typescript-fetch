@@ -256,11 +256,12 @@ function fetcher<Paths>() {
                 path: path as string,
                 method: method as Method,
                 queryParams: Object.keys(queryParams || {}),
+                // @ts-ignore
                 payload,
                 init: mergeRequestInit(defaultInit, init),
                 fetch,
               },
-              persistParams,
+              persistParams || [],
             ),
           )) as CreateFetch<M, Paths[P][M]>,
       }),
