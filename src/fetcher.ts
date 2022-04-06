@@ -45,10 +45,17 @@ function queryString(params: Record<string, unknown>): string {
   return ''
 }
 
-function getPath(path: string, payload: Record<string, any>) {
+function getPath(
+  path: string,
+  payload: Record<string, any>,
+  persistParams: string[],
+) {
   return path.replace(/\{([^}]+)\}/g, (_, key) => {
     const value = encodeURI(payload[key])
-    delete payload[key]
+
+    if (!persistParams.includes(key)) {
+      delete payload[key]
+    }
     return value
   })
 }
@@ -57,13 +64,16 @@ function getQuery(
   method: Method,
   payload: Record<string, any>,
   query: string[],
+  persistParams: string[],
 ) {
   let queryObj = {} as any
 
   if (sendBody(method)) {
     query.forEach((key) => {
       queryObj[key] = payload[key]
-      delete payload[key]
+      if (!persistParams.includes(key)) {
+        delete payload[key]
+      }
     })
   } else {
     queryObj = { ...payload }
@@ -108,11 +118,16 @@ function mergeRequestInit(
   return { ...first, ...second, headers }
 }
 
-function getFetchParams(request: Request) {
+function getFetchParams(request: Request, persistParams: string[]) {
   const payload = { ...request.payload } // clone payload
 
-  const path = getPath(request.path, payload)
-  const query = getQuery(request.method, payload, request.queryParams)
+  const path = getPath(request.path, payload, persistParams)
+  const query = getQuery(
+    request.method,
+    payload,
+    request.queryParams,
+    persistParams,
+  )
   const headers = getHeaders(request.init?.headers)
   const url = request.baseUrl + path + query
 
@@ -181,8 +196,8 @@ function wrapMiddlewares(middlewares: Middleware[], fetch: Fetch): Fetch {
   return (url, init) => handler(0, url, init)
 }
 
-async function fetchUrl<R>(request: Request) {
-  const { url, init } = getFetchParams(request)
+async function fetchUrl<R>(request: Request, persistParams: string[]) {
+  const { url, init } = getFetchParams(request, persistParams)
 
   const response = await request.fetch(url, init)
 
@@ -234,16 +249,19 @@ function fetcher<Paths>() {
     path: <P extends keyof Paths>(path: P) => ({
       method: <M extends keyof Paths[P]>(method: M) => ({
         create: ((queryParams?: Record<string, true | 1>) =>
-          createFetch((payload, init) =>
-            fetchUrl({
-              baseUrl: baseUrl || '',
-              path: path as string,
-              method: method as Method,
-              queryParams: Object.keys(queryParams || {}),
-              payload,
-              init: mergeRequestInit(defaultInit, init),
-              fetch,
-            }),
+          createFetch((payload, init, persistParams) =>
+            fetchUrl(
+              {
+                baseUrl: baseUrl || '',
+                path: path as string,
+                method: method as Method,
+                queryParams: Object.keys(queryParams || {}),
+                payload,
+                init: mergeRequestInit(defaultInit, init),
+                fetch,
+              },
+              persistParams,
+            ),
           )) as CreateFetch<M, Paths[P][M]>,
       }),
     }),

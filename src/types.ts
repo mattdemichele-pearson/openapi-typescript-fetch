@@ -89,6 +89,7 @@ export type Fetch = (
 export type _TypedFetch<OP> = (
   arg: OpArgType<OP>,
   init?: RequestInit,
+  persistParams?: string[],
 ) => Promise<ApiResponse<OpReturnType<OP>>>
 
 export type TypedFetch<OP> = _TypedFetch<OP> & {
