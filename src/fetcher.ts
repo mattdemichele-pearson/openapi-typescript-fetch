@@ -208,7 +208,7 @@ function createFetch<OP>(fetch: _TypedFetch<OP>): TypedFetch<OP> {
   const fun = async (
     payload: OpArgType<OP>,
     init?: RequestInit,
-    persistParams?: [],
+    persistParams?: string[],
   ) => {
     try {
       return await fetch(payload, init, persistParams)
